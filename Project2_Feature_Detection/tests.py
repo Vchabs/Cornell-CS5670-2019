@@ -75,6 +75,7 @@ image = np.array(Image.open('resources/triangle1.jpg'))
 grayImage = cv2.cvtColor(image.astype(np.float32)/255.0, cv2.COLOR_BGR2GRAY)
 def compute_and_save():
     (a,b) = HKD.computeHarrisValues(grayImage) # Todo1
+    print(a,b)
     c = HKD.computeLocalMaxima(a) # Todo2
     d = HKD.detectKeypoints(image) # Todo3
     e = SFD.describeFeatures(image, d) # Todo 4

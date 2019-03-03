@@ -119,14 +119,52 @@ class HarrisKeypointDetector(KeypointDetector):
         # each pixel and store in 'harrisImage'.  See the project page
         # for direction on how to do this. Also compute an orientation
         # for each pixel and store it in 'orientationImage.'
+
+        img =  np.pad(srcImage,2,mode = 'reflect')
+
         # TODO-BLOCK-BEGIN
-        raise Exception("TODO 1: in features.py not implemented")
-        # TODO-BLOCK-END
+        Ix = scipy.ndimage.sobel(img,axis=0)
+        Iy = scipy.ndimage.sobel(img,axis=1)
+
+        #Loop through each pixel in Ix,Iy/the image
+        for x in range(2,height+2,1):
+            for y in range(2,width+2,1):
+                # print(img[x-2:x+3,y-2:y+3])
+                harrisImage[x-2][y-2]=self.computeHarrisForPixel(img[x-2:x+3,y-2:y+3],Ix[x-2:x+3,y-2:y+3],Iy[x-2:x+3,y-2:y+3])
+                # orientationImage[x-2][y-2] = np.degrees(np.arctan2((Iy[x][y]/float(Ix[x][y])), 1))
+                # print("Height: ",height, "Width: ",width,"X: ",x,"Y: ",y)
+                # print Ix.shape
+                # print Iy.shape
+        # raise Exception("TODO 1: in features.py not implemented")
+        # # TODO-BLOCK-END
 
         # Save the harris image as harris.png for the website assignment
         self.saveHarrisImage(harrisImage, srcImage)
 
         return harrisImage, orientationImage
+
+    def computeHarrisForPixel(self,hood,sobel_x,sobel_y):
+        #before passing in do reflection 
+        #for each pixel, use the 5x5 neighborhood to compute the harris matrix
+        weights = scipy.ndimage.gaussian_filter(hood,sigma=0.5)
+        sobel_x=sobel_x.reshape((25,))
+        sobel_y=sobel_y.reshape((25,))
+        weights = weights.reshape((25,))
+
+
+
+        HMatrix=np.zeros((2,2))
+        # print(np.dot(sobel_x.T,sobel_x)," : SHAPE!!")
+        # print(weights.shape,": SHAPE WEIOGHT")
+        # print(np.sum(weights*np.dot(sobel_x,sobel_x)))
+
+        HMatrix[0][0]=np.sum(weights*np.dot(sobel_x,sobel_x))
+        HMatrix[1][0]=np.sum(weights*np.dot(sobel_x,sobel_y))
+        HMatrix[0][1]=np.sum(weights*np.dot(sobel_x,sobel_y))
+        HMatrix[1][1]=np.sum(weights*np.dot(sobel_y,sobel_y))
+        
+        c = np.linalg.det(HMatrix) - 0.1*np.trace(HMatrix)**2
+        return c
 
     def computeLocalMaxima(self, harrisImage):
         '''
