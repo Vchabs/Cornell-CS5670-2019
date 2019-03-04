@@ -120,21 +120,27 @@ class HarrisKeypointDetector(KeypointDetector):
         # for direction on how to do this. Also compute an orientation
         # for each pixel and store it in 'orientationImage.'
 
-        img =  np.pad(srcImage,2,mode = 'reflect')
-
         # TODO-BLOCK-BEGIN
-        Ix = scipy.ndimage.sobel(img,axis=0)
-        Iy = scipy.ndimage.sobel(img,axis=1)
+        Ix = scipy.ndimage.sobel(srcImage,axis=0)
+        Iy = scipy.ndimage.sobel(srcImage,axis=1)
 
+        H = np.zeros((2,2))
+
+        Ix2_weighted = scipy.ndimage.filters.gaussian_filter(Ix*Ix, sigma=0.5)
+        Iy2_weighted = scipy.ndimage.filters.gaussian_filter(Iy*Iy, sigma=0.5)
+        Ixy_weighted = scipy.ndimage.filters.gaussian_filter(Ix*Iy, sigma=0.5)
         #Loop through each pixel in Ix,Iy/the image
-        for x in range(2,height+2,1):
-            for y in range(2,width+2,1):
+        for y in range(0,height):
+            for x in range(0,width):
                 # print(img[x-2:x+3,y-2:y+3])
-                harrisImage[x-2][y-2]=self.computeHarrisForPixel(img[x-2:x+3,y-2:y+3],Ix[x-2:x+3,y-2:y+3],Iy[x-2:x+3,y-2:y+3])
-                # orientationImage[x-2][y-2] = np.degrees(np.arctan2((Iy[x][y]/float(Ix[x][y])), 1))
-                # print("Height: ",height, "Width: ",width,"X: ",x,"Y: ",y)
-                # print Ix.shape
-                # print Iy.shape
+                H[0][0] = Ix2_weighted[y][x]
+                H[1][0] = Ixy_weighted[y][x]
+                H[0][1] = Ixy_weighted[y][x]
+                H[1][1] = Iy2_weighted[y][x]
+                c = np.linalg.det(H) - 0.1*np.trace(H)**2
+                harrisImage[y][x] = c
+                
+                orientationImage[y][x] = np.degrees(np.arctan2(Ix[y][x], Iy[y][x]))
         # raise Exception("TODO 1: in features.py not implemented")
         # # TODO-BLOCK-END
 
@@ -142,29 +148,6 @@ class HarrisKeypointDetector(KeypointDetector):
         self.saveHarrisImage(harrisImage, srcImage)
 
         return harrisImage, orientationImage
-
-    def computeHarrisForPixel(self,hood,sobel_x,sobel_y):
-        #before passing in do reflection 
-        #for each pixel, use the 5x5 neighborhood to compute the harris matrix
-        weights = scipy.ndimage.gaussian_filter(hood,sigma=0.5)
-        sobel_x=sobel_x.reshape((25,))
-        sobel_y=sobel_y.reshape((25,))
-        weights = weights.reshape((25,))
-
-
-
-        HMatrix=np.zeros((2,2))
-        # print(np.dot(sobel_x.T,sobel_x)," : SHAPE!!")
-        # print(weights.shape,": SHAPE WEIOGHT")
-        # print(np.sum(weights*np.dot(sobel_x,sobel_x)))
-
-        HMatrix[0][0]=np.sum(weights*np.dot(sobel_x,sobel_x))
-        HMatrix[1][0]=np.sum(weights*np.dot(sobel_x,sobel_y))
-        HMatrix[0][1]=np.sum(weights*np.dot(sobel_x,sobel_y))
-        HMatrix[1][1]=np.sum(weights*np.dot(sobel_y,sobel_y))
-        
-        c = np.linalg.det(HMatrix) - 0.1*np.trace(HMatrix)**2
-        return c
 
     def computeLocalMaxima(self, harrisImage):
         '''
@@ -181,7 +164,15 @@ class HarrisKeypointDetector(KeypointDetector):
 
         # TODO 2: Compute the local maxima image
         # TODO-BLOCK-BEGIN
-        raise Exception("TODO 2: in features.py not implemented")
+        maxImage = np.zeros(harrisImage.shape)
+        scipy.ndimage.filters.maximum_filter(harrisImage, size=7, output=maxImage, mode='constant', cval=0.0)
+        #raise Exception("TODO 2: in features.py not implemented")
+        indices = np.where(maxImage == harrisImage)
+        row_indices = indices[0]
+        col_indices = indices[1]
+        for i in range(row_indices.shape[0]):
+            if harrisImage[row_indices[i]][col_indices[i]] == maxImage[row_indices[i]][col_indices[i]]:
+                destImage[row_indices[i]][col_indices[i]] = True
         # TODO-BLOCK-END
 
         return destImage
@@ -229,7 +220,11 @@ class HarrisKeypointDetector(KeypointDetector):
                 # f.angle to the orientation in degrees and f.response to
                 # the Harris score
                 # TODO-BLOCK-BEGIN
-                raise Exception("TODO 3: in features.py not implemented")
+                f.size = 10
+                f.pt = (x,y)
+                f.angle = orientationImage[y,x]
+                f.response = harrisImage[y,x]
+                #raise Exception("TODO 3: in features.py not implemented")
                 # TODO-BLOCK-END
 
                 features.append(f)
@@ -293,9 +288,19 @@ class SimpleFeatureDescriptor(FeatureDescriptor):
             # sampled centered on the feature point. Store the descriptor
             # as a row-major vector. Treat pixels outside the image as zero.
             # TODO-BLOCK-BEGIN
-            raise Exception("TODO 4: in features.py not implemented")
-            # TODO-BLOCK-END
 
+            #x-range => [(x-2),(x-1),x,(x+1),(x+2)]
+            #y-range => [(y-2),(y-1),y,(y+1),(y+2)]
+            desc_index = 0
+            for curr_y in xrange(y-2,y+3):
+                for curr_x in xrange(x-2,x+3):
+                    if curr_y >= 0 and curr_y < image.shape[0]:
+                        if curr_x >= 0 and curr_x < image.shape[1]:
+                            desc[i][desc_index] = grayImage[curr_y,curr_x]
+                    desc_index+=1
+            #raise Exception("TODO 4: in features.py not implemented")
+            # TODO-BLOCK-END
+    
         return desc
 
 
@@ -329,7 +334,41 @@ class MOPSFeatureDescriptor(FeatureDescriptor):
             transMx = np.zeros((2, 3))
 
             # TODO-BLOCK-BEGIN
-            raise Exception("TODO 5: in features.py not implemented")
+
+            # Getting the basic information about the current keypoint's features
+            x,y = f.pt
+            angle = -1*np.radians(f.angle)
+            # We get the translation array we need to do the initial translation 
+            # of the 40 by 40 subgrid of the image,. It will be in the form
+            # np.array([-x,-y, 0]) according to the slides at: 
+            # http://www.cs.cornell.edu/courses/cs4670/2018sp/lec14_descriptors.pdf
+            translation1 = transformations.get_trans_mx(np.array([-x,-y,0]))
+            # We get the transformation matrix needed to get our 40 by 40 grid 
+            # rotated properly.
+            rotation = transformations.get_rot_mx(0.0,0.0,angle)
+            # We get the transformation matrix needed to scale down the original
+            # 40 by 40 grid we obtain by a factor of 5
+            scale = transformations.get_scale_mx(0.2,0.2,1)
+            # The last transformation is a translation that is half the size of the
+            # downsampled window which results in it being np.array([4,4,0]) in our case
+            translation2 = transformations.get_trans_mx(np.array([4,4,0]))
+            # Finally we use the formula T = M_{T2}M_{S}M_{R}M_{T1} to determine the
+            # overall transformation we make to the undelrying image
+            overall_transformation = np.dot(np.dot(np.dot(translation2,scale),rotation),translation1)
+            # Now we form the correct 2 by 3 numpy array to carry out all of the necessary
+            # transformations on the given image by using our calculated overall_transformation
+            # and filling in missing entries in the transMx numpy array
+            
+            # 4 by 4 matrix transforms (x,y,z,1) to (x',y',z',1) 
+            # Kai's advice (Piazza) -> 3rd row of 4 by 4 always constant
+            # -> the 2D transformation is from (x,y,1) to (x', y')
+            # Conclusion: (1) Take out the 3rd column that represents z
+            # (2) Take out the last two rows that are always constant
+            overall_transformation = np.delete(overall_transformation,2,1)
+            overall_transformation = np.delete(overall_transformation,2,0)
+            overall_transformation = np.delete(overall_transformation,2,0)
+
+            transMx = overall_transformation
             # TODO-BLOCK-END
 
             # Call the warp affine function to do the mapping
@@ -341,7 +380,18 @@ class MOPSFeatureDescriptor(FeatureDescriptor):
             # variance. If the variance is zero then set the descriptor
             # vector to zero. Lastly, write the vector to desc.
             # TODO-BLOCK-BEGIN
-            raise Exception("TODO 6: in features.py not implemented")
+            # Subtract out the mean from each of the pixels of the descriptor
+            # and then divide by the variance of the pixel values in order to 
+            # normalize
+            destImageTarget = destImage[:8, :8]
+            # numeric issue, set a very small threshold instead of zero
+            if np.std(destImageTarget) <= 0.00001:
+                desc[i,:] = np.zeros((windowSize * windowSize,))
+            else:
+                destImageTarget-=np.mean(destImageTarget)
+                destImageTarget/=np.std(destImageTarget)
+                desc[i,:] = destImageTarget.flatten()
+            #raise Exception("TODO 6: image n features.py not implemented")
             # TODO-BLOCK-END
 
         return desc
@@ -467,9 +517,14 @@ class SSDFeatureMatcher(FeatureMatcher):
         # Note: multiple features from the first image may match the same
         # feature in the second image.
         # TODO-BLOCK-BEGIN
-        raise Exception("TODO 7: in features.py not implemented")
+        # Let's take advantage of the fact that the feature descriptors
+        # have the same number of keypoints
+        for i in xrange(desc1.shape[0]):
+            ssds = (np.sum((desc2-desc1[i])**2,axis=1))**0.5
+            min_ssd_index = np.argmin(ssds)
+            match = cv2.DMatch(i, min_ssd_index, ssds[min_ssd_index])
+            matches.append(match)
         # TODO-BLOCK-END
-
         return matches
 
 
@@ -509,7 +564,13 @@ class RatioFeatureMatcher(FeatureMatcher):
         # feature in the second image.
         # You don't need to threshold matches in this function
         # TODO-BLOCK-BEGIN
-        raise Exception("TODO 8: in features.py not implemented")
+        #raise Exception("TODO 8: in features.py not implemented")
+        for i in xrange(desc1.shape[0]):
+            ssds = (np.sum((desc2-desc1[i])**2,axis=1))**0.5
+            min_ssd_indices = ssds.argsort()[:2]
+            ratio_distance = ssds[min_ssd_indices[0]]/ssds[min_ssd_indices[1]]
+            match = cv2.DMatch(i, min_ssd_indices[0], ratio_distance)
+            matches.append(match)
         # TODO-BLOCK-END
 
         return matches
