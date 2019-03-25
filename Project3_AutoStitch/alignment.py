@@ -3,6 +3,7 @@ import random
 
 import cv2
 import numpy as np
+from scipy import spatial
 
 eTranslate = 0
 eHomography = 1
@@ -42,11 +43,34 @@ def computeHomography(f1, f2, matches, A_out=None):
         #Fill in the matrix A in this loop.
         #Access elements using square brackets. e.g. A[0,0]
         #TODO-BLOCK-BEGIN
-        raise Exception("TODO in alignment.py not implemented")
+        #raise Exception("TODO in alignment.py not implemented")
+
+        # Reference: http://6.869.csail.mit.edu/fa17/lecture/lecture14sift_homography.pdf
+        # Slide #9
+        A[2*i,0] = a_x
+        A[2*i,1] = a_y
+        A[2*i,2] = 1
+        A[2*i,6] = -1*b_x*a_x
+        A[2*i,7] = -1*b_x*a_y
+        A[2*i,8] = -1*b_x
+
+        A[2*i+1,3] = a_x
+        A[2*i+1,4] = a_y
+        A[2*i+1,5] = 1
+        A[2*i+1,6] = -1*b_y*a_x
+        A[2*i+1,7] = -1*b_y*a_y
+        A[2*i+1,8] = -1*b_y
         #TODO-BLOCK-END
         #END TODO
 
     U, s, Vt = np.linalg.svd(A)
+
+    '''print "U = ", U
+    print 
+    print "s = ", s
+    print 
+    print "Vt = ", Vt
+    print'''
 
     if A_out is not None:
         A_out[:] = A
@@ -62,7 +86,8 @@ def computeHomography(f1, f2, matches, A_out=None):
     #BEGIN TODO 3
     #Fill the homography H with the appropriate elements of the SVD
     #TODO-BLOCK-BEGIN
-    raise Exception("TODO in alignment.py not implemented")
+    #raise Exception("TODO in alignment.py not implemented")
+    H = Vt[8].reshape(3,3)
     #TODO-BLOCK-END
     #END TODO
 
@@ -103,7 +128,27 @@ def alignPair(f1, f2, matches, m, nRANSAC, RANSACthresh):
     #This function should also call get_inliers and, at the end,
     #least_squares_fit.
     #TODO-BLOCK-BEGIN
-    raise Exception("TODO in alignment.py not implemented")
+    #raise Exception("TODO in alignment.py not implemented")
+    #max_inlier_motion_est = None
+    max_inliers = []
+    for i in range(nRANSAC):
+        if m == eHomography: # Choose 4 random matches
+            random_matches = random.sample(matches,4)
+            current_motion = computeHomography(f1,f2,random_matches)
+        else: # Choose only 1 random match
+            random_matches = [random.choice(matches)]
+            (a_x, a_y) = f1[random_matches[0].queryIdx].pt
+            (b_x, b_y) = f2[random_matches[0].trainIdx].pt
+            current_motion = np.eye(3)
+            current_motion[0,2] = b_x-a_x
+            current_motion[1,2] = b_y-a_y
+        
+        curr_inliers = getInliers(f1,f2,random_matches,current_motion,RANSACthresh)
+        if len(curr_inliers) > len(max_inliers):
+            max_inliers = curr_inliers
+            #max_inlier_motion_est = current_motion
+
+    M = leastSquaresFit(f1,f2,random_matches,m,max_inliers)
     #TODO-BLOCK-END
     #END TODO
     return M
@@ -138,7 +183,21 @@ def getInliers(f1, f2, matches, M, RANSACthresh):
         #by M, is within RANSACthresh of its match in f2.
         #If so, append i to inliers
         #TODO-BLOCK-BEGIN
-        raise Exception("TODO in alignment.py not implemented")
+        #raise Exception("TODO in alignment.py not implemented")
+        current_match = matches[i]
+        current_feature1_point = f1[current_match.queryIdx].pt
+        current_feature2_point = f2[current_match.trainIdx].pt
+        current_feature1_vec = np.array([[current_feature1_point[0]],[current_feature1_point[1]],[1]])
+        current_feature2_vec = np.array([[current_feature2_point[0]],[current_feature2_point[1]],[1]])
+        transformed_vec = M.dot(current_feature1_vec)
+        # Normalize all the coordinates of the transformed vector
+        transformed_vec[0]/=transformed_vec[2]
+        transformed_vec[1]/=transformed_vec[2]
+        distance = np.linalg.norm(current_feature2_vec-transformed_vec)
+        #distance = spatial.distance.euclidean(current_feature2_vec, transformed_vec)
+        print distance, RANSACthresh
+        if distance <= RANSACthresh:
+            inlier_indices.append(i)
         #TODO-BLOCK-END
         #END TODO
 
@@ -183,7 +242,12 @@ def leastSquaresFit(f1, f2, matches, m, inlier_indices):
             #Use this loop to compute the average translation vector
             #over all inliers.
             #TODO-BLOCK-BEGIN
-            raise Exception("TODO in alignment.py not implemented")
+            #raise Exception("TODO in alignment.py not implemented")
+            inlier_match = matches[inlier_indices[i]]
+            current_feature1_point = f1[inlier_match.queryIdx].pt
+            current_feature2_point = f2[inlier_match.trainIdx].pt
+            u += current_feature2_point[0]-current_feature1_point[0]
+            v += current_feature2_point[1]-current_feature1_point[1]
             #TODO-BLOCK-END
             #END TODO
 
@@ -198,7 +262,14 @@ def leastSquaresFit(f1, f2, matches, m, inlier_indices):
         #Compute a homography M using all inliers.
         #This should call computeHomography.
         #TODO-BLOCK-BEGIN
-        raise Exception("TODO in alignment.py not implemented")
+        #raise Exception("TODO in alignment.py not implemented")
+        inlier_matches = []
+        print len(inlier_indices)
+        for i in range(len(inlier_indices)):
+            inlier_match = matches[inlier_indices[i]]
+            inlier_matches.append(inlier_match)
+        M = computeHomography(f1, f2, inlier_matches)
+        print "Current Calculated M = ", M
         #TODO-BLOCK-END
         #END TODO
 

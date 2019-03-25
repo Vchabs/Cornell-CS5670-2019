@@ -26,6 +26,8 @@ class TestWarp(unittest.TestCase):
 
     def test_computeSphericalWarpMappings(self):
         ''' Check if spherical warp is correct. '''
+        print np.sum(self.img_bl == self.org_bl)
+        print np.sum(self.img_bl != self.org_bl)
         self.assertTrue(np.allclose(self.img_bl, self.org_bl, rtol=1e-05, atol=1e-05),
             'Error in Spherical warping'
         )
@@ -162,6 +164,10 @@ class TestBlend(unittest.TestCase):
             accHeight),
             delta=1.01,
         )
+
+    def test_accumulateBlend(self):
+        print "in test_accumulateBlend"
+        blend.accumulateBlend([],[],0,0)
 
 
 if __name__ == '__main__':

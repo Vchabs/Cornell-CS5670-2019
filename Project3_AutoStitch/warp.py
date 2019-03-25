@@ -1,6 +1,7 @@
 import os
 import cv2
 import numpy as np
+import math
 
 def warpLocal(src, uv):
     '''
@@ -71,7 +72,23 @@ def computeSphericalWarpMappings(dstShape, f, k1, k2):
     # as output for your code. They should all have the shape
     # (img_height, img_width)
     # TODO-BLOCK-BEGIN
-    raise Exception("TODO in warp.py not implemented")
+    #raise Exception("TODO in warp.py not implemented")
+    
+    xt = np.zeros(dstShape)
+    yt = np.zeros(dstShape)
+    
+    #for row in range(dstShape[0]):
+    #for col in range(dstShape[1]):
+    xt = np.sin(xf)*np.cos(yf)
+    yt = np.sin(yf)
+    zt = np.cos(xf)*np.cos(yf)
+    xt/=zt
+    yt/=zt
+    # Distorting with radial distortion coefficients k1 and k2
+    r_squared = xt**2 + yt**2
+    r_to_fourth = np.square(r_squared)
+    xt = xt*(1+k1*r_squared+k2*r_to_fourth)
+    yt = yt*(1+k1*r_squared+k2*r_to_fourth)
     # TODO-BLOCK-END
     # END TODO
     # Convert back to regular pixel coordinates

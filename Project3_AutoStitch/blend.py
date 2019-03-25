@@ -29,7 +29,38 @@ def imageBoundingBox(img, M):
     """
     #TODO 8
     #TODO-BLOCK-BEGIN
-    raise Exception("TODO in blend.py not implemented")
+    #raise Exception("TODO in blend.py not implemented")
+    num_rows = img.shape[0]
+    num_cols = img.shape[1]
+
+    Xs = []
+    Ys = []
+
+    '''minX = float("inf")
+    minY = float("inf")
+    maxX = float("-inf")
+    maxY = float("-inf")'''
+
+    for row in range(num_rows):
+        for col in range(num_cols):
+            current_position_vector = np.array([[col],[row],[1]])
+            transformed_vector = np.dot(M,current_position_vector)
+            transformed_vector[0]/=transformed_vector[2]
+            transformed_vector[1]/=transformed_vector[2]
+            currX = transformed_vector[0,0]
+            currY = transformed_vector[1,0]
+            Xs.append(currX)
+            Ys.append(currY)
+            '''minX = min(minX, currX)
+            maxX = max(maxX, currX)
+            minY = min(minY, currY)
+            maxY = max(maxY, currY)'''
+    minX = min(Xs)
+    minY = min(Ys)
+    maxX = max(Xs)
+    maxY = max(Ys)
+
+    print "minX, minY, maxX, maxY = ", minX, minY, maxX, maxY
     #TODO-BLOCK-END
     return int(minX), int(minY), int(maxX), int(maxY)
 
@@ -50,6 +81,11 @@ def accumulateBlend(img, acc, M, blendWidth):
     # Fill in this routine
     #TODO-BLOCK-BEGIN
     raise Exception("TODO in blend.py not implemented")
+
+    # Inverse Warping the image to resample each image to its final location
+    #M_inv = np.linalg.inv(M)
+    #minX, minY, maxX, maxY = imageBoundingBox(img, M)
+
     #TODO-BLOCK-END
     # END TODO
 
@@ -107,7 +143,12 @@ def getAccSize(ipv):
         # BEGIN TODO 9
         # add some code here to update minX, ..., maxY
         #TODO-BLOCK-BEGIN
-        raise Exception("TODO in blend.py not implemented")
+        #raise Exception("TODO in blend.py not implemented")
+        current_bounding_box = imageBoundingBox(img, M)
+        minX = min(current_bounding_box[0],minX)
+        minY = min(current_bounding_box[1],minY)
+        maxX = max(current_bounding_box[2],maxX)
+        maxY = max(current_bounding_box[3],maxY)
         #TODO-BLOCK-END
         # END TODO
 
