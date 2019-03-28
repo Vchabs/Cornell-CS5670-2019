@@ -165,9 +165,6 @@ class TestBlend(unittest.TestCase):
             delta=1.01,
         )
 
-    def test_accumulateBlend(self):
-        print "in test_accumulateBlend"
-        blend.accumulateBlend([],[],0,0)
 
 
 if __name__ == '__main__':

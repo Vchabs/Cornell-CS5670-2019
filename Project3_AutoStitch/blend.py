@@ -3,6 +3,7 @@ import sys
 
 import cv2
 import numpy as np
+from scipy import interpolate
 
 
 class ImageInfo:
@@ -33,6 +34,7 @@ def imageBoundingBox(img, M):
     num_rows = img.shape[0]
     num_cols = img.shape[1]
 
+
     Xs = []
     Ys = []
 
@@ -59,8 +61,6 @@ def imageBoundingBox(img, M):
     minY = min(Ys)
     maxX = max(Xs)
     maxY = max(Ys)
-
-    print "minX, minY, maxX, maxY = ", minX, minY, maxX, maxY
     #TODO-BLOCK-END
     return int(minX), int(minY), int(maxX), int(maxY)
 
@@ -80,9 +80,36 @@ def accumulateBlend(img, acc, M, blendWidth):
     # BEGIN TODO 10
     # Fill in this routine
     #TODO-BLOCK-BEGIN
-    raise Exception("TODO in blend.py not implemented")
+    #raise Exception("TODO in blend.py not implemented")
+    h = img.shape[0]
+    w = img.shape[1]
+    M_inv = np.linalg.inv(M)
+    minX, minY, maxX, maxY = imageBoundingBox(img,M)
+
+    alphas = [ (i*1.0)/blendWidth for i in range(blendWidth)]
 
     # Inverse Warping the image to resample each image to its final location
+    for col in range(minX,maxX):
+        for row in range(minY,maxY):
+            original_point = np.array([col, row, 1.])
+            transformed_point = np.dot(M_inv,original_point)
+            newx = min(int(transformed_point[0] / transformed_point[2]), w-1)
+            newy = min(int(transformed_point[1] / transformed_point[2]), h-1)
+
+            color_zeros = img[newy,newx,0] == 0 and img[newy,newx,1] == 0 and img[newy,newx,2]==0
+            
+            if not color_zeros and newx >= 0 and newx < w-1 and newy >= 0 and newy < h-1:    
+                weight = 1.0
+                if minX <= newx < minX + blendWidth:
+                    weight = alphas[newx-minX]
+                if maxX - blendWidth < newx <= maxX:
+                    weight = alphas[maxX-newx]
+                acc[row,col,3] += weight
+            
+                for layer in range(3):
+                    acc[row,col,layer] += img[newy,newx,layer] * weight      
+
+    
     #M_inv = np.linalg.inv(M)
     #minX, minY, maxX, maxY = imageBoundingBox(img, M)
 
@@ -101,7 +128,17 @@ def normalizeBlend(acc):
     # BEGIN TODO 11
     # fill in this routine..
     #TODO-BLOCK-BEGIN
-    raise Exception("TODO in blend.py not implemented")
+    #raise Exception("TODO in blend.py not implemented")
+    h = acc.shape[0]
+    w = acc.shape[1]
+    img = np.zeros((h, w, 3))
+    for j in range(0, w):
+        for i in range(0, h):
+            if acc[i,j,3]>0:
+                img[i,j,0] = int(acc[i,j,0]/acc[i,j,3])
+                img[i,j,1] = int(acc[i,j,1]/acc[i,j,3])
+                img[i,j,2] = int(acc[i,j,2]/acc[i,j,3])
+    img = np.uint8(img)
     #TODO-BLOCK-END
     # END TODO
     return img
@@ -240,7 +277,9 @@ def blendImages(ipv, blendWidth, is360=False, A_out=None):
     # Note: warpPerspective does forward mapping which means A is an affine
     # transform that maps accumulator coordinates to final panorama coordinates
     #TODO-BLOCK-BEGIN
-    raise Exception("TODO in blend.py not implemented")
+    #raise Exception("TODO in blend.py not implemented")
+    if is360:
+        A = computeDrift(x_init, y_init, x_final, y_final, width)
     #TODO-BLOCK-END
     # END TODO
 
