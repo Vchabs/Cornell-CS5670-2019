@@ -98,7 +98,7 @@ def accumulateBlend(img, acc, M, blendWidth):
 
             color_zeros = img[newy,newx,0] == 0 and img[newy,newx,1] == 0 and img[newy,newx,2]==0
             
-            if not color_zeros and newx >= 0 and newx < w-1 and newy >= 0 and newy < h-1:    
+            if not color_zeros and 0 <= newx < w-1 and 0 <= newy < h-1:    
                 weight = 1.0
                 if minX <= newx < minX + blendWidth:
                     weight = alphas[newx-minX]
