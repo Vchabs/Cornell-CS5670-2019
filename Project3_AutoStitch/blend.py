@@ -95,19 +95,19 @@ def accumulateBlend(img, acc, M, blendWidth):
             transformed_point = np.dot(M_inv,original_point)
             newx = min(int(transformed_point[0] / transformed_point[2]), w-1)
             newy = min(int(transformed_point[1] / transformed_point[2]), h-1)
-
-            color_zeros = img[newy,newx,0] == 0 and img[newy,newx,1] == 0 and img[newy,newx,2]==0
             
-            if not color_zeros and 0 <= newx < w-1 and 0 <= newy < h-1:    
-                weight = 1.0
-                if minX <= newx < minX + blendWidth:
-                    weight = alphas[newx-minX]
-                if maxX - blendWidth < newx <= maxX:
-                    weight = alphas[maxX-newx]
-                acc[row,col,3] += weight
-            
-                for layer in range(3):
-                    acc[row,col,layer] += img[newy,newx,layer] * weight      
+            if 0 <= newx < w-1 and 0 <= newy < h-1:
+                color_zeros = img[newy,newx,0] == 0 and img[newy,newx,1] == 0 and img[newy,newx,2]==0
+                if not color_zeros:
+                    weight = 1.0
+                    if minX <= newx < minX + blendWidth:
+                        weight = alphas[newx-minX]
+                    if maxX - blendWidth < newx <= maxX:
+                        weight = alphas[maxX-newx]
+                    acc[row,col,3] += weight
+                
+                    for layer in range(3):
+                        acc[row,col,layer] += img[newy,newx,layer] * weight      
 
     
     #M_inv = np.linalg.inv(M)

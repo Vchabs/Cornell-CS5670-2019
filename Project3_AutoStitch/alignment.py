@@ -91,7 +91,7 @@ def computeHomography(f1, f2, matches, A_out=None):
     H/=H[2,2]
     #TODO-BLOCK-END
     #END TODO
-    print "H = ", H
+    #print "H = ", H
     return H
 
 def alignPair(f1, f2, matches, m, nRANSAC, RANSACthresh):
@@ -196,14 +196,15 @@ def getInliers(f1, f2, matches, M, RANSACthresh):
         current_feature1_vec[2] = 1
         transformed_vec = np.dot(M,current_feature1_vec)
         # Normalize all the coordinates of the transformed vector
-        transformed_vec[0]/=transformed_vec[2]
-        transformed_vec[1]/=transformed_vec[2]
+        if transformed_vec[2] != 0.0:
+            transformed_vec[0]/=transformed_vec[2]
+            transformed_vec[1]/=transformed_vec[2]
         #transformed_vec[2,0] = 1.0
         distance_x = (current_feature2_point[0]-transformed_vec[0])**2
         distance_y = (current_feature2_point[1]-transformed_vec[1])**2
         distance = np.sqrt(distance_x+distance_y)
         #distance = spatial.distance.euclidean(current_feature2_vec, transformed_vec)
-        print distance, RANSACthresh
+        #print distance, RANSACthresh
         if distance <= RANSACthresh:
             inlier_indices.append(i)
         #TODO-BLOCK-END
@@ -272,7 +273,7 @@ def leastSquaresFit(f1, f2, matches, m, inlier_indices):
         #TODO-BLOCK-BEGIN
         #raise Exception("TODO in alignment.py not implemented")
         inlier_matches = []
-        print len(inlier_indices)
+        #print len(inlier_indices)
         for i in range(len(inlier_indices)):
             inlier_match = matches[inlier_indices[i]]
             inlier_matches.append(inlier_match)
